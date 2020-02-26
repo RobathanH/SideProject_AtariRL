@@ -13,7 +13,9 @@ from keras import backend as K
 class DDQN:
     # only supports 1D inputLen inputs and outputLen action options
     # architecture option allows easy testing of different network architectures
-    def __init__(inputLen, outputLen, architecture=1, ):
+    def __init__(inputLen, outputLen, discountRate, architecture=1):
+        self.DISCOUNT_RATE = discountRate
+        
         if (architecture == 1):
             self.predictRewardModel, self.actionChoiceModel = self.basicDDQNStructure(inputLen, outputLen)
             self.targetModel = self.basicDDQNStructure(inputLen, outputLen, target=True)
@@ -38,7 +40,7 @@ class DDQN:
             exit(1)
 
         # does not include future rewards of state-action pairs that resulted in gameOver
-        targetRewards = rewards + DISCOUNT_RATE * np.logical_not(gameOvers).astype(int) * self.targetModel.predict(newStates[i].reshape(1, INPUT_LEN))
+        targetRewards = rewards + self.DISCOUNT_RATE * np.logical_not(gameOvers).astype(int) * self.targetModel.predict(newStates[i].reshape(1, INPUT_LEN))
 
         self.predictRewardModel.fit([states, actions], targetRewards, epochs=epochs)
 
