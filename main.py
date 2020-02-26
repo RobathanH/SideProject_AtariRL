@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
             firstRunPerEpoch = False
         
-        net.train(states, 10, actions, rewards, newStates, gameOvers)
+        net.train(10, states, actions, rewards, newStates, gameOvers)
         print("Training Round: ", epoch)
 
 
