@@ -44,8 +44,11 @@ class DDQN:
             print("Given training lists are not matching lengths! Exitting.")
             exit(1)
 
+        print(np.asarray(newStates).shape)
+        print(newStates)
+
         # does not include future rewards of state-action pairs that resulted in gameOver
-        targetRewards = rewards + self.DISCOUNT_RATE * np.logical_not(gameOvers).astype(int) * self.targetModel.predict(newStates[i].reshape(1, INPUT_LEN))
+        targetRewards = rewards + self.DISCOUNT_RATE * np.logical_not(gameOvers).astype(int) * self.targetModel.predict(newStates)
 
         self.predictRewardModel.fit([states, actions], targetRewards, epochs=epochs)
 

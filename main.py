@@ -38,32 +38,31 @@ if __name__ == "__main__":
 
     net = DDQN(INPUT_LEN, OUTPUT_LEN, DISCOUNT_RATE)
 
-    states = []
-    actions = []
-    rewards = []
-    newStates = []
-    gameOvers = []
-    episodeRewards = [] # summed rewards over whole episode
+    states = np.empty((0, INPUT_LEN), float)
+    actions = np.empty((0, OUTPUT_LEN), int)
+    rewards = np.empty((0,), float)
+    newStates = np.empty((0, INPUT_LEN), float)
+    gameOvers = np.empty((0,), bool)
+
+    overallActionCounter = 0
 
     for epoch in range(50):
         if len(states) >= 20000:
-            states = []
-            actions = []
-            rewards = []
-            newStates = []
-            gameOvers = []
-            episodeRewards = []
+            states = np.empty((0, INPUT_LEN), float)
+            actions = np.empty((0, OUTPUT_LEN), int)
+            rewards = np.empty((0,), float)
+            newStates = np.empty((0, INPUT_LEN), float)
+            gameOvers = np.empty((0,), bool)
 
-        oldReplayLen = len(states)
+        oldReplayLen = overallActionCounter
 
         firstRunPerEpoch = True
 
-        while len(states) - oldReplayLen < 5000:
+        while overallActionCounter - oldReplayLen < 5000:
             done = False
             obs = ENV.reset()
 
             ticks = 0
-            totalReward = 0
             
             while not done: # and ticks < 1000:
                 if firstRunPerEpoch:
@@ -83,28 +82,26 @@ if __name__ == "__main__":
                 actionArr[action] = 1
 
                 # save to experience buffer
-                states.append(obs)
-                actions.append(actionArr)
-                rewards.append(reward)
-                gameOvers.append(done)
-                newStates.append(newObs)
+                states = np.append(states, [obs], axis=0)
+                actions = np.append(actions, [actionArr], axis=0)
+                rewards = np.append(rewards, [reward], axis=0)
+                gameOvers = np.append(gameOvers, [done], axis=0)
+                newStates = np.append(newStates, [newObs], axis=0)
 
                 # update counters
-                totalReward += reward
                 ticks += 1
+                overallActionCounter += 1
 
                 # limit experience buffer growth between training sessions
-                if len(states) - oldReplayLen >= 5000:
+                if overallActionCounter - oldReplayLen >= 5000:
                     break
 
                 # update current state to new state
                 obs = newObs
 
-            episodeRewards += ([totalReward] * ticks)
-
             firstRunPerEpoch = False
         
-        net.train(10, states, actions, rewards, newStates, gameOvers)
+        net.train(10, states, actions, rewards, gameOvers, newStates)
         print("Training Round: ", epoch)
 
 
