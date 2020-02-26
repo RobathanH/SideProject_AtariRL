@@ -13,7 +13,9 @@ from keras import backend as K
 class DDQN:
     # only supports 1D inputLen inputs and outputLen action options
     # architecture option allows easy testing of different network architectures
-    def __init__(inputLen, outputLen, discountRate, architecture=1):
+    def __init__(self, inputLen, outputLen, discountRate, architecture=1):
+        self.INPUT_LEN = inputLen
+        self.OUTPUT_LEN = outputLen
         self.DISCOUNT_RATE = discountRate
         
         if (architecture == 1):
@@ -25,6 +27,9 @@ class DDQN:
 
 
     # simple utility functions
+    def action(self, state):
+        return self.actionChoiceModel.predict(state.reshape(1, self.INPUT_LEN))[0]
+
     def saveModel(self, saveName):
         self.predictRewardModel.save(saveName)
 
@@ -78,7 +83,7 @@ class DDQN:
             bestReward = Lambda(lambda x: K.max(x))(rewardPerAction)
 
             bestRewardModel = Model(input=stateInput, output=bestReward)
-            bestRewardModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+            # bestRewardModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
             return bestRewardModel
 
@@ -89,7 +94,7 @@ class DDQN:
             bestAction = Lambda(lambda x: K.argmax(x))(rewardPerAction)
 
             actionChoiceModel = Model(input=stateInput, output=bestAction) # not trained on
-            actionChoiceModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+            # actionChoiceModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
             # sets all rewardsPerAction values to zero except the one corresponding to actionInputs 1-hot element
             # allows us to isolate the expected reward of a state-action pair
