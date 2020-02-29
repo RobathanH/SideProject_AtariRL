@@ -38,11 +38,10 @@ class ExpBuffer:
     # samples sampleSize tuples randomly, then unzips and returns individual variable lists
     # returns the lists as multiple returns
     def sample(self, sampleSize):
-        if count > sampleSize:
+        if self.count > sampleSize:
             sample = random.sample(self.buffer, sampleSize)
         else:
             sample = random.sample(self.buffer, self.count)
 
-        result = list(zip(*self.buffer))
-        return *result
-        
+        result = list(map(list, zip(*sample)))
+        return [np.asarray(element) for element in result]

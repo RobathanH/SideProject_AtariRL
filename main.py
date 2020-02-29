@@ -8,6 +8,7 @@ from keras.models import load_model
 from keras import backend as K
 
 from DDQN import DDQN
+from ExpBuffer import ExpBuffer
 
 
 # constants - game choice
@@ -19,7 +20,13 @@ INPUT_LEN = len(ENV.observation_space.sample())
 OUTPUT_LEN = ENV.action_space.n
 
 
+# buffer constants
+BUFFER_SIZE = 100000
+
+
 # training constants
+RL_TRAIN_SAMPLE_SIZE = 50000
+
 DISCOUNT_RATE = 0.9
 
 
@@ -38,22 +45,11 @@ if __name__ == "__main__":
 
     net = DDQN(INPUT_LEN, OUTPUT_LEN, DISCOUNT_RATE)
 
-    states = np.empty((0, INPUT_LEN), float)
-    actions = np.empty((0, OUTPUT_LEN), int)
-    rewards = np.empty((0,), float)
-    newStates = np.empty((0, INPUT_LEN), float)
-    gameOvers = np.empty((0,), bool)
+    buffer = ExpBuffer(BUFFER_SIZE)
 
     overallActionCounter = 0
 
     for epoch in range(50):
-        if len(states) >= 20000:
-            states = np.empty((0, INPUT_LEN), float)
-            actions = np.empty((0, OUTPUT_LEN), int)
-            rewards = np.empty((0,), float)
-            newStates = np.empty((0, INPUT_LEN), float)
-            gameOvers = np.empty((0,), bool)
-
         oldReplayLen = overallActionCounter
 
         firstRunPerEpoch = True
@@ -64,7 +60,7 @@ if __name__ == "__main__":
 
             ticks = 0
             
-            while not done: # and ticks < 1000:
+            while not done and overallActionCounter - oldReplayLen < 5000:
                 if firstRunPerEpoch:
                     ENV.render()
 
@@ -82,26 +78,22 @@ if __name__ == "__main__":
                 actionArr[action] = 1
 
                 # save to experience buffer
-                states = np.append(states, [obs], axis=0)
-                actions = np.append(actions, [actionArr], axis=0)
-                rewards = np.append(rewards, [reward], axis=0)
-                gameOvers = np.append(gameOvers, [done], axis=0)
-                newStates = np.append(newStates, [newObs], axis=0)
+                buffer.add((obs, actionArr, reward, done, newObs))
 
                 # update counters
                 ticks += 1
                 overallActionCounter += 1
 
-                # limit experience buffer growth between training sessions
-                if overallActionCounter - oldReplayLen >= 5000:
-                    break
-
                 # update current state to new state
                 obs = newObs
 
             firstRunPerEpoch = False
+
+        # sample from experience buffer and train
+        states, actions, rewards, gameOvers, newStates = buffer.sample(RL_TRAIN_SAMPLE_SIZE)
         
         net.train(10, states, actions, rewards, gameOvers, newStates)
+
         print("Training Round: ", epoch)
 
 
