@@ -1,6 +1,8 @@
 import gym
 import numpy as np
 import random
+from collections import deque
+from sklearn.model_selection import train_test_split
 
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout, Lambda, Dot
@@ -9,12 +11,13 @@ from keras import backend as K
 
 from DDQN import DDQN
 from ExpBuffer import ExpBuffer
+from VAE import VAE
 
 
 # constants - game choice
 # ENV = gym.make('AirRaid-ram-v0')
 # ENV = gym.make('CartPole-v0')
-ENV = gym.make('Boxing-ram-v0')
+ENV = gym.make('Boxing-v0')
 # ENV = gym.make('Breakout-ram-v0')
 INPUT_LEN = len(ENV.observation_space.sample())
 OUTPUT_LEN = ENV.action_space.n
@@ -31,14 +34,55 @@ DISCOUNT_RATE = 0.9
 
 
 
-
+# auto-encoder constants
+ENCODED_LEN = 200
+VAE_VISIBLE_FRAMES = 3 # auto-encoder compresses three subsequent frames into the feature vector
+VAE_TRAINING_SIZE = 1000        
         
-        
+
+# initializes auto-encoder training with observations from random actions in environment
+def initVAE():
+    # no need to use ExpBuffer for this
+    buffer = []
+    bufLen = 0
+
+    queue = deque()
+    
+    while bufLen < VAE_TRAINING_SIZE:
+        done = False
+        obs = ENV.reset()
+
+        queue.append(obs)
+        if len(queue) > VAE_VISIBLE_FRAMES:
+            queue.popLeft()
+
+        while not done and bufLen < VAE_TRAINING_SIZE:
+            action = ENV.action_space.sample()
+            obs, reward, done, info = ENV.step(action)
+
+            queue.append(obs)
+            if len(queue) > VAE_VISIBLE_FRAMES:
+                queue.popleft()
+
+            if len(queue) == VAE_VISIBLE_FRAMES:
+                sample = np.array(list(queue))
+                buffer.append(sample)
+                bufLen += 1
+
+    
+    vae = VAE(buffer[0].shape, ENCODED_LEN)
+    vae.overall.summary()
+
+    buffer = np.array(buffer)
+    print(buffer.shape)
+
+    trainBuf, testBuf = train_test_split(buffer, test_size=0.1)
+    
+    vae.train(trainBuf, 10, 100)
+    vae.evaluate(testBuf, batch_size=100)
 
 
-
-
-
+initVAE()
 
 
 if __name__ == "__main__":
