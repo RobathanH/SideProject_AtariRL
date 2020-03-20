@@ -141,6 +141,7 @@ class VAE:
         # reconstruction loss function
         reconstruction_loss = binary_crossentropy(decoded_inputs, decoded_outputs)
         reconstruction_loss *= decodedFlattenedLen
+        reconstruction_loss = K.mean(reconstruction_loss)
         kl_loss = 1 + encoded_log_vars - K.square(encoded_means) - K.exp(encoded_log_vars)
         kl_loss = K.sum(kl_loss, axis=-1)
         kl_loss *= -0.5

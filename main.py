@@ -15,10 +15,9 @@ from VAE import VAE
 
 
 # constants - game choice
-# ENV = gym.make('AirRaid-ram-v0')
-# ENV = gym.make('CartPole-v0')
+# ENV = gym.make('AirRaid-v0')
 ENV = gym.make('Boxing-v0')
-# ENV = gym.make('Breakout-ram-v0')
+# ENV = gym.make('Breakout-v0')
 INPUT_LEN = len(ENV.observation_space.sample())
 OUTPUT_LEN = ENV.action_space.n
 
@@ -37,7 +36,7 @@ DISCOUNT_RATE = 0.9
 # auto-encoder constants
 ENCODED_LEN = 200
 VAE_VISIBLE_FRAMES = 3 # auto-encoder compresses three subsequent frames into the feature vector
-VAE_TRAINING_SIZE = 1000        
+VAE_TRAINING_SIZE = 1000
         
 
 # initializes auto-encoder training with observations from random actions in environment
@@ -79,7 +78,7 @@ def initVAE():
     trainBuf, testBuf = train_test_split(buffer, test_size=0.1)
     
     vae.train(trainBuf, 10, 100)
-    vae.evaluate(testBuf, batch_size=100)
+    vae.evaluate(testBuf, batch_size=128)
 
 
 initVAE()
