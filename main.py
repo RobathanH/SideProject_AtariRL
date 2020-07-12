@@ -15,10 +15,10 @@ from VAE import VAE
 
 
 # constants - game choice
-# ENV = gym.make('AirRaid-v0')
-ENV = gym.make('Boxing-v0')
+ENV = gym.make('AirRaid-v0')
+# ENV = gym.make('Boxing-v0')
 # ENV = gym.make('Breakout-v0')
-INPUT_LEN = len(ENV.observation_space.sample())
+INPUT_LEN = len(ENV.observation_space.sample().flatten())
 OUTPUT_LEN = ENV.action_space.n
 
 
@@ -35,8 +35,16 @@ DISCOUNT_RATE = 0.9
 
 # auto-encoder constants
 ENCODED_LEN = 200
-VAE_VISIBLE_FRAMES = 3 # auto-encoder compresses three subsequent frames into the feature vector
-VAE_TRAINING_SIZE = 1000
+VAE_VISIBLE_FRAMES = 2 # auto-encoder compresses two subsequent frames into the feature vector
+VAE_TRAINING_SIZE = 20000
+
+
+
+# normalizes input data into values from 0 to 1
+# assumes original input elements are scaled 0 to 255
+def normalizeImgs(data):
+    data = np.array(data).astype('float64')
+    data *= 1/255.
         
 
 # initializes auto-encoder training with observations from random actions in environment
@@ -51,14 +59,20 @@ def initVAE():
         done = False
         obs = ENV.reset()
 
+        normalizeImgs(obs)
         queue.append(obs)
         if len(queue) > VAE_VISIBLE_FRAMES:
-            queue.popLeft()
+            queue.popleft()
+        if len(queue) == VAE_VISIBLE_FRAMES:
+            sample = np.array(list(queue))
+            buffer.append(sample)
+            bufLen += 1
 
         while not done and bufLen < VAE_TRAINING_SIZE:
             action = ENV.action_space.sample()
             obs, reward, done, info = ENV.step(action)
 
+            normalizeImgs(obs)
             queue.append(obs)
             if len(queue) > VAE_VISIBLE_FRAMES:
                 queue.popleft()
@@ -70,15 +84,21 @@ def initVAE():
 
     
     vae = VAE(buffer[0].shape, ENCODED_LEN)
-    vae.overall.summary()
 
     buffer = np.array(buffer)
-    print(buffer.shape)
 
-    trainBuf, testBuf = train_test_split(buffer, test_size=0.1)
+    trainBuf, testBuf = buffer[:-1000], buffer[-1000:]
     
     vae.train(trainBuf, 10, 100)
-    vae.evaluate(testBuf, batch_size=128)
+
+    vae.saveModel('vae_2_frame.md5')
+
+    #vae.loadModel('vae_2_frame.md5')
+    
+    print(vae.overall.evaluate(testBuf, testBuf))
+
+    # display progress
+    vae.display(np.array(random.sample(list(buffer), 3)))
 
 
 initVAE()
@@ -87,6 +107,8 @@ initVAE()
 if __name__ == "__main__":
 
     net = DDQN(INPUT_LEN, OUTPUT_LEN, DISCOUNT_RATE)
+    print(net.predictRewardModel.summary())
+    exit(1)
 
     buffer = ExpBuffer(BUFFER_SIZE)
 
@@ -121,7 +143,7 @@ if __name__ == "__main__":
                 actionArr[action] = 1
 
                 # save to experience buffer
-                buffer.add((obs, actionArr, reward, done, newObs))
+                buffer.add((obs.flatten(), actionArr, reward, done, newObs.flatten()))
 
                 # update counters
                 ticks += 1

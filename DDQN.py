@@ -72,9 +72,9 @@ class DDQN:
         stateInput = Input(shape=(inputLen,))
         actionInput = Input(shape=(outputLen,))
 
-        innerLayer = Dense(2 * inputLen, activation='sigmoid')(stateInput)
-        innerLayer = Dense(4 * inputLen, activation='sigmoid')(innerLayer)
-        innerLayer = Dense(8 * inputLen, activation='sigmoid')(innerLayer)
+        innerLayer = Dense(int(inputLen / 2), activation='sigmoid')(stateInput)
+        innerLayer = Dense(int(inputLen / 4), activation='sigmoid')(innerLayer)
+        innerLayer = Dense(int(inputLen / 8), activation='sigmoid')(innerLayer)
 
         rewardPerAction = Dense(outputLen, use_bias=True)(innerLayer) # linear activation
 
